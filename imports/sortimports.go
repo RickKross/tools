@@ -34,18 +34,19 @@ func sortImports(fset *token.FileSet, f *ast.File) {
 			continue
 		}
 
-		// Identify and sort runs of specs on successive lines.
+		// Remove blank lines between import groups to better sorting
 		i := 0
-		specs := d.Specs[:0]
 		for j, s := range d.Specs {
+			// If there is a blank line between specs
 			if j > i && fset.Position(s.Pos()).Line > 1+fset.Position(d.Specs[j-1].End()).Line {
-				// j begins a new run.  End this one.
-				specs = append(specs, sortSpecs(fset, f, d.Specs[i:j])...)
+				// Remove that blank line to better sorting
+				fset.File(d.Specs[j-1].End()).MergeLine(fset.Position(d.Specs[j-1].End()).Line + 1)
+				// This means start of new specs block
 				i = j
 			}
 		}
-		specs = append(specs, sortSpecs(fset, f, d.Specs[i:])...)
-		d.Specs = specs
+
+		d.Specs = sortSpecs(fset, f, d.Specs[:])
 
 		// Deduping can leave a blank line before the rparen; clean that up.
 		if len(d.Specs) > 0 {
